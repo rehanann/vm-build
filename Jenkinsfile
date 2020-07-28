@@ -32,8 +32,8 @@ pipeline {
         stage('TF Apply') {
                 steps {
                     sh 'terraform apply myplan'
-                    sh 'cp myplan ../gluster-destroy/'
-                    sh 'cp terraform.tfstate* ../gluster-destroy/'
+                    sh 'cp myplan ../vm-destroy/'
+                    sh 'cp terraform.tfstate* ../vm-destroy/'
                     sh 'sleep 60'
             }
         }
