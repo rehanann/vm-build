@@ -1,5 +1,5 @@
 resource "google_compute_instance" "master-1" {
-  name = "gluster-1"
+  name = "master-1"
   machine_type = "${var.machine_type}"
   zone = "${"${var.region}"}-a"
 
