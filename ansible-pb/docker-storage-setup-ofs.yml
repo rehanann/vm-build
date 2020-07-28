@@ -1,0 +1,68 @@
+---
+- hosts: nodes
+  become: yes
+  become_user: root
+  tasks:
+    - name: stop docker
+      service: name=docker state=stopped
+      ignore_errors: yes
+
+    
+    - name: Unmount a mounted volume
+      mount:
+        path: /var/lib/docker
+        state: unmounted
+    
+    - name: Remove the logical volume.
+      lvol:
+        vg: vg_docker
+        thinpool: rhel-docker-pool
+        state: absent
+        force: yes
+    
+    - name: Create a volume group on top of /dev/sdb with physical extent size = 128KiB
+      lvg:
+        vg: vg_docker
+        state: absent
+        force: yes
+    
+    - name: Create a volume group on top of /dev/sdb with physical extent size = 128KiB
+      lvg:
+        vg: vg_docker
+        pvs: /dev/sdb
+        pesize: 128K  
+    
+    - name: Run Wipefs on /dev/sdb
+      command: "wipefs -af /dev/sdb"
+    
+    - name: remove any existing docker-storage config file
+      file:
+        path: /etc/sysconfig/docker-storage
+        state: absent
+
+    - block:
+        - name: create the docker-storage-setup overlayfs config file
+          template:
+            src: "docker-storage-setup-overlayfs2"
+            dest: /etc/sysconfig/docker-storage-setup
+            owner: root
+            group: root
+            mode: 0644
+      when:
+        - ansible_distribution == "CentOS"
+    
+    - name: Run docker-storage setup on /dev/sdb
+      command: "docker-storage-setup"
+    
+    - name: Mount up device by label
+      mount:
+        path: /var/lib/docker
+        src:  /dev/mapper/vg_docker-lv_docker
+        fstype: xfs
+        state: present
+    
+    - name: Install Docker
+      package: name=docker state=present
+
+    - name: start docker
+      service: name=docker state=restarted enabled=true
